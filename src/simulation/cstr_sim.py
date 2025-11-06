@@ -28,3 +28,17 @@ print(f"Steady-state temperature: {x_ss[1]:.2f} K")
 
 #Dynamic simulation
 
+from scipy.integrate import solve_ivp
+
+# Initial conditions
+x0 = np.array([1.0, 350.0])  # [CA0, T0]
+
+# Time span
+t_span = (0, 60)  # 0 to 60 minutes
+t_eval = np.linspace(0, 60, 300)
+
+# Solve ODE
+def cstr_ode(t, x):
+    return reactor.dynamics(t, x, u)
+
+sol = solve_ivp(cstr_ode, t_span, x0, t_eval=t_eval, method='RK45')
