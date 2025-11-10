@@ -1,4 +1,5 @@
-from unit.reactor.cstr import CSTR
+from sproclib.unit.reactor import CSTR
+
 import numpy as np
 
 #REACTOR dimensions
