@@ -1,67 +1,71 @@
-from sproclib.unit.reactor import CSTR
-
 import numpy as np
-
-#REACTOR dimensions
-reactor = CSTR(     # Hard coded for now, could be changed to something abstract if values can be chosen from the frontend
-    V = 1.0,     # Reactor volume (L)
-    Cp = 4.18,   # Specific heat capacity (J/g/K)
-    rho = 1000,  # Density (g/L)
-    k0 = 100,    # Pre-exponential factor (/min), adjust as needed
-    Ea = 50000,  # Activation energy (J/mol)
-    dHr = 60000, # Reaction enthalpy (J/mol), exothermic
-    UA = 500,    # Heat transfer coeefficient (J/min/K)
-)
-
-#Feed settings
-
-#cstr.set_feed(C_AA0=1.0, Tf=293, C_AAf=2.0, qc=1.0) 
-#cstr.set_coolant(Tc=285)   # Initial coolant temperature
-
-u = np.array([10.0, 1.0, 350.0, 300.0])
-
-#Calculate steady state mode
-
-x_ss = reactor.steady_state(u)
-print(f"Steady-state concentration: {x_ss[0]:.4f} mol/L")
-print(f"Steady-state temperature: {x_ss[1]:.2f} K")
-
-
-#Dynamic simulation
-
-from scipy.integrate import solve_ivp
-
-# Initial conditions
-x0 = np.array([1.0, 350.0])  # [CA0, T0]
-
-# Time span
-t_span = (0, 60)  # 0 to 60 minutes
-t_eval = np.linspace(0, 60, 300)
-
-# Solve ODE
-def cstr_ode(t, x):
-    return reactor.dynamics(t, x, u)
-
-sol = solve_ivp(cstr_ode, t_span, x0, t_eval=t_eval, method='RK45')
-
+from sproclib.unit.reactor.cstr import CSTR
 import matplotlib.pyplot as plt
 
-plt.figure(figsize=(10,4))
+class PID:
+    def __init__(self, Kp, Ki, Kd, setpoint, dt=1.0):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.setpoint = setpoint
+        self.dt = dt
+        self.integral = 0.0
+        self.prev_error = 0.0
 
-# Concentration plot
-plt.subplot(1, 2, 1)
-plt.plot(sol.t, sol.y[0])
-plt.xlabel('Time [min]')
-plt.ylabel('Concentration [mol/L]')
-plt.title('Concentration vs Time')
+    def update(self, pv):
+        error = self.setpoint - pv
+        self.integral += error * self.dt
+        derivative = (error - self.prev_error) / self.dt
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        self.prev_error = error
+        return output
 
-# Temperature plot
-plt.subplot(1, 2, 2)
-plt.plot(sol.t, sol.y[1])
-plt.xlabel('Time [min]')
-plt.ylabel('Temperature [K]')
-plt.title('Temperature vs Time')
+# --- Reactor parameters (example values)
+reactor = CSTR(V=1.0, Cp=4.18, rho=1000, k0=100, Ea=50000, dHr=60000, UA=500)
 
+# --- Simulation settings
+dt = 1.0
+n_steps = 50
+T_setpoint = 350.0
+T_init = 320.0
+U_init = np.array([10., 1., T_init, 300.])      # flowrate, conc, temp, coolant (example)
+
+pid = PID(Kp=5.0, Ki=0.2, Kd=1.0, setpoint=T_setpoint, dt=dt)
+
+# --- Logging for dataset
+data_X, data_y = [], []        # X for LSTM input, y for output/action
+T_hist, Tc_hist, t_hist = [T_init], [U_init[-1]], [0]
+
+x = np.array([1.0, T_init])    # [concentration, temperature]
+u = U_init.copy()
+
+for t in range(1, n_steps):
+    # Get current process variable, run PID control on temperature
+    pv = x[1]         # measured reactor temperature
+    mv = pid.update(pv)
+    # Apply MV (coolant) limits if needed
+    u[-1] = np.clip(mv, 280, 400)  # coolant temp (control input)
+    # Simulate: advance reactor state (replace with correct method for SPROCLIB if needed)
+    x = reactor.dynamics(t*dt, x, u) * dt + x  # Euler advance, check your API!
+    # Store timestep for LSTM dataset
+    data_X.append(np.hstack([x, u, T_setpoint]))
+    data_y.append(mv)
+    # For plots
+    T_hist.append(x[1])
+    Tc_hist.append(u[-1])
+    t_hist.append(t*dt)
+
+# --- Plot
+plt.plot(t_hist, T_hist, label='Reactor Temp (PV)')
+plt.plot(t_hist, [T_setpoint]*n_steps, '--', label='Setpoint (SP)')
+plt.plot(t_hist, Tc_hist, label='Coolant Temp (MV)')
+plt.xlabel('Time (min)')
+plt.ylabel('Temperature (K)')
+plt.legend()
 plt.tight_layout()
 plt.show()
 
+# --- Convert dataset arrays for ML
+data_X = np.array(data_X)    # shape: [steps, features]
+data_y = np.array(data_y)    # shape: [steps]
+# Save as npy/csv for training: np.save('pid_dataset_X.npy', data_X), etc.

@@ -1,3 +1,25 @@
--sproclib 
+#Core dependencies
+fastapi
+uvicorn
+pydantic
+pydantic settings
+
+#Dashboard
+-plotly
+-dash
+-dash-bootstrap
+
+#Machine Learning with neural networks
 -pytorch
--tensorflow
+-numpy
+-pandas
+-scikit-learn 
+
+#Process simulation
+-sproclib
+
+#Utilities
+-python-multipart
+-websockets
+-pyyaml
+-python-dotnev 
