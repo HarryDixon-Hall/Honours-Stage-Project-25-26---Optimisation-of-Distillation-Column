@@ -11,7 +11,7 @@ app.layout = html.Div([
         html.H3("CSTR Parameters"),
         html.Div([
             html.Label("Reactor volume (m3):"),
-            dcc.Slider(id='volume', min=0.5, max=5, step=0.1, value=1.0),
+            dcc.Input(id='volume', type='number', value=1.0),
         ]),
         html.Div([
             html.Label("Heat Capacity (kJ/kg.K):"),
@@ -38,7 +38,43 @@ app.layout = html.Div([
             dcc.Input(id='htrans', type='number', value=500),
         ]),
     ]),
+
+    # PID Controller
+    html.Div([
+        html.H3("PID Controller"),
+        html.Div([
+            html.Label("KP:"),
+            dcc.Input(id='kp', type='number', placeholder='kp', value=5.0),
+        ]),
+        html.Div([
+            html.Label("KI:"),
+            dcc.Input(id='ki', type='number', placeholder='ki', value=0.2),
+        ]),
+        html.Div([
+            html.Label("KD:"),
+            dcc.Input(id='kd', type='number', placeholder='kd', value=1.0),
+        ]),
+    ]),
+
+    # Neural Network Architecture
+    html.Div([
+        html.H3("Neural Network Architecture"),
+        dcc.Dropdown(
+            id='nn_type',
+            options=[
+                {'label': 'LSTM', 'value': 'lstm'},
+                {'label': 'GRU', 'value': 'gru'},
+                {'label': 'LSTM-Transformer Hybrid', 'value': 'hybrid'}
+            ],
+            value='hybrid'
+        ),
+        dcc.Slider(id='hidden_units', min=50, max=500, step=50, value=200),
+        dcc.Input(id='learning_rate', type='number', value=0.001),
+    ]),
+
+    html.Button('Submit Configuration', id='submit_config', n_clicks=0),
 ])
 
 if __name__ == '__main__':
     app.run(debug=True)
+
