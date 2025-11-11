@@ -68,8 +68,14 @@ app.layout = html.Div([
             ],
             value='hybrid'
         ),
-        dcc.Slider(id='hidden_units', min=50, max=500, step=50, value=200),
-        dcc.Input(id='learning_rate', type='number', value=0.001),
+        html.Div([
+            html.Label("Hidden Units:"),
+            dcc.Slider(id='hidden_units', min=50, max=500, step=50, value=200),
+        ]),
+        html.Div([
+            html.Label("Learning Rate:"),
+            dcc.Input(id='learning_rate', type='number', value=0.001),
+        ]),
     ]),
 
     html.Button('Submit Configuration', id='submit_config', n_clicks=0),
