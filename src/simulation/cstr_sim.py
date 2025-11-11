@@ -3,7 +3,7 @@ from sproclib.unit.reactor import CSTR
 import numpy as np
 
 #REACTOR dimensions
-cstr = CSTR(     # Hard coded for now, could be changed to something abstract if values can be chosen from the frontend
+reactor = CSTR(     # Hard coded for now, could be changed to something abstract if values can be chosen from the frontend
     V = 1.0,     # Reactor volume (L)
     Cp = 4.18,   # Specific heat capacity (J/g/K)
     rho = 1000,  # Density (g/L)
@@ -43,3 +43,25 @@ def cstr_ode(t, x):
     return reactor.dynamics(t, x, u)
 
 sol = solve_ivp(cstr_ode, t_span, x0, t_eval=t_eval, method='RK45')
+
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,4))
+
+# Concentration plot
+plt.subplot(1, 2, 1)
+plt.plot(sol.t, sol.y[0])
+plt.xlabel('Time [min]')
+plt.ylabel('Concentration [mol/L]')
+plt.title('Concentration vs Time')
+
+# Temperature plot
+plt.subplot(1, 2, 2)
+plt.plot(sol.t, sol.y[1])
+plt.xlabel('Time [min]')
+plt.ylabel('Temperature [K]')
+plt.title('Temperature vs Time')
+
+plt.tight_layout()
+plt.show()
+
